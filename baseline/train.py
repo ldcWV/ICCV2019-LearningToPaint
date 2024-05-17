@@ -48,7 +48,7 @@ def train(agent, env, evaluate):
                     # writer.add_scalar('validate/mean_reward', np.mean(reward), step)
                     # writer.add_scalar('validate/mean_dist', np.mean(dist), step)
                     # writer.add_scalar('validate/var_dist', np.var(dist), step)
-                    wandb.log({'validate/mean_reward': np.mean(reward), 'validate/mean_dist': np.mean(dist), 'validate/var_dist': np.var(dist)}, step=step)
+                    wandb.log({'validate/mean_reward': np.mean(reward), 'validate/mean_dist': np.mean(dist), 'validate/var_dist': np.var(dist)})
                     agent.save_model(output)
             train_time_interval = time.time() - time_stamp
             time_stamp = time.time()
@@ -70,7 +70,7 @@ def train(agent, env, evaluate):
                 # writer.add_scalar('train/Q', tot_Q / episode_train_times, step)
                 # writer.add_scalar('train/critic_loss', tot_value_loss / episode_train_times, step)
                 print("Step_{:07d}: critic_lr:{:.3e} actor_lr:{:.3e} Q:{:.3f} critic_loss:{:.3f}".format(step, lr[0], lr[1], tot_Q / episode_train_times, tot_value_loss / episode_train_times))
-                wandb.log({'train/critic_lr': lr[0], 'train/actor_lr': lr[1], 'train/Q': tot_Q / episode_train_times, 'train/critic_loss': tot_value_loss / episode_train_times}, step=step)
+                wandb.log({'train/critic_lr': lr[0], 'train/actor_lr': lr[1], 'train/Q': tot_Q / episode_train_times, 'train/critic_loss': tot_value_loss / episode_train_times})
             if debug: prBlack('#{}: steps:{} interval_time:{:.2f} train_time:{:.2f}' \
                 .format(episode, step, train_time_interval, time.time()-time_stamp)) 
             time_stamp = time.time()
@@ -91,8 +91,8 @@ if __name__ == "__main__":
     parser.add_argument('--tau', default=0.001, type=float, help='moving average for target network')
     parser.add_argument('--max_step', default=40, type=int, help='max length for episode')
     parser.add_argument('--noise_factor', default=0, type=float, help='noise level for parameter space noise')
-    parser.add_argument('--validate_interval', default=50, type=int, help='how many episodes to perform a validation')
-    parser.add_argument('--validate_episodes', default=5, type=int, help='how many episode to perform during validation')
+    parser.add_argument('--validate_interval', default=5, type=int, help='how many episodes to perform a validation')
+    parser.add_argument('--validate_episodes', default=1, type=int, help='how many episode to perform during validation')
     parser.add_argument('--train_times', default=2000000, type=int, help='total traintimes')
     parser.add_argument('--episode_train_times', default=10, type=int, help='train times for each episode')    
     parser.add_argument('--resume', default=None, type=str, help='Resuming model path for testing')

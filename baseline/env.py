@@ -35,21 +35,21 @@ class Paint:
     def load_data(self):
         # CelebA
         global train_num, test_num
-        for i in range(3000):
-            img_id = '%06d' % (i + 1)
-            try:
-                img = cv2.imread('../data/img_align_celeba/' + img_id + '.jpg', cv2.IMREAD_UNCHANGED)
-                img = cv2.resize(img, (width, width))
-                if i > 200:                
-                    train_num += 1
-                    img_train.append(img)
-                else:
-                    test_num += 1
-                    img_test.append(img)
-            finally:
-                if (i + 1) % 10000 == 0:                    
-                    print('loaded {} images'.format(i + 1))
-        print('finish loading data, {} training images, {} testing images'.format(str(train_num), str(test_num)))
+        # for i in range(3000):
+        #     img_id = '%06d' % (i + 1)
+        #     try:
+        #         img = cv2.imread('../data/img_align_celeba/' + img_id + '.jpg', cv2.IMREAD_UNCHANGED)
+        #         img = cv2.resize(img, (width, width))
+        #         if i > 200:                
+        #             train_num += 1
+        #             img_train.append(img)
+        #         else:
+        #             test_num += 1
+        #             img_test.append(img)
+        #     finally:
+        #         if (i + 1) % 10000 == 0:                    
+        #             print('loaded {} images'.format(i + 1))
+        # print('finish loading data, {} training images, {} testing images'.format(str(train_num), str(test_num)))
         
     def pre_data(self, id, test):
         if test:
@@ -65,16 +65,16 @@ class Paint:
         self.test = test
         self.imgid = [0] * self.batch_size
         self.gt = torch.zeros([self.batch_size, 3, width, width], dtype=torch.uint8).to(device)
-        for i in range(self.batch_size):
-            if test:
-                id = (i + begin_num)  % test_num
-            else:
-                id = np.random.randint(train_num)
-            self.imgid[i] = id
-            self.gt[i] = torch.tensor(self.pre_data(id, test))
+        # for i in range(self.batch_size):
+        #     if test:
+        #         id = (i + begin_num)  % test_num
+        #     else:
+        #         id = np.random.randint(train_num)
+        #     self.imgid[i] = id
+        #     self.gt[i] = torch.tensor(self.pre_data(id, test))
         self.tot_reward = ((self.gt.float() / 255) ** 2).mean(1).mean(1).mean(1)
         self.stepnum = 0
-        self.canvas = torch.zeros([self.batch_size, 3, width, width], dtype=torch.uint8).to(device)
+        self.canvas = torch.ones([self.batch_size, 3, width, width], dtype=torch.uint8).to(device) * 255
         self.lastdis = self.ini_dis = self.cal_dis()
         return self.observation()
     

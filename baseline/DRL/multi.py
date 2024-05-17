@@ -21,19 +21,19 @@ class fastenv():
         self.log = 0
 
     def save_image(self, log, step):
-        for i in range(self.env_batch):
-            if self.env.imgid[i] <= 10:
-                canvas = cv2.cvtColor((to_numpy(self.env.canvas[i].permute(1, 2, 0))), cv2.COLOR_BGR2RGB)
-                # self.writer.add_image('{}/canvas_{}.png'.format(str(self.env.imgid[i]), str(step)), canvas, log)
-                wandb.log({'{}/canvas_{}.png'.format(str(self.env.imgid[i]), str(step)): [wandb.Image(canvas)]}, step=step)
+        # for i in range(1):
+        #     if self.env.imgid[i] <= 10:
+        #         canvas = cv2.cvtColor((to_numpy(self.env.canvas[i].permute(1, 2, 0))), cv2.COLOR_BGR2RGB)
+        #         self.writer.add_image('{}/canvas_{}.png'.format(str(self.env.imgid[i]), str(step)), canvas, log)
+        #         wandb.log({'{}/canvas_{}.png'.format(str(self.env.imgid[i]), str(step)): [wandb.Image(canvas)]})
         if step == self.max_episode_length:
-            for i in range(self.env_batch):
+            for i in range(1):
                 if self.env.imgid[i] < 50:
                     gt = cv2.cvtColor((to_numpy(self.env.gt[i].permute(1, 2, 0))), cv2.COLOR_BGR2RGB)
                     canvas = cv2.cvtColor((to_numpy(self.env.canvas[i].permute(1, 2, 0))), cv2.COLOR_BGR2RGB)
                     # self.writer.add_image(str(self.env.imgid[i]) + '/_target.png', gt, log)
                     # self.writer.add_image(str(self.env.imgid[i]) + '/_canvas.png', canvas, log)
-                    wandb.log({'{}/_target.png'.format(str(self.env.imgid[i])): [wandb.Image(gt)], '{}/_canvas.png'.format(str(self.env.imgid[i])): [wandb.Image(canvas)]}, step=step)
+                    wandb.log({'{}/_target.png'.format(str(self.env.imgid[i])): [wandb.Image(gt)], '{}/_canvas.png'.format(str(self.env.imgid[i])): [wandb.Image(canvas)]})
     
     def step(self, action):
         with torch.no_grad():
@@ -43,7 +43,7 @@ class fastenv():
                 self.dist = self.get_dist()
                 for i in range(self.env_batch):
                     # self.writer.add_scalar('train/dist', self.dist[i], self.log)
-                    wandb.log({'train/dist': self.dist[i]}, step=self.log)
+                    wandb.log({'train/dist': self.dist[i]})
                     self.log += 1
         return ob, r, d, _
 

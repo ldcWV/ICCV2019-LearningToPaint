@@ -7,7 +7,6 @@ from Renderer.model import *
 from DRL.rpm import rpm
 from DRL.actor import *
 from DRL.critic import *
-from DRL.wgan import *
 from utils.util import *
 import wandb
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -86,35 +85,36 @@ class DDPG(object):
             return self.actor(state)
 
     def update_gan(self, state):
-        canvas = state[:, :3]
-        gt = state[:, 3 : 6]
-        fake, real, penal = update(canvas.float() / 255, gt.float() / 255)
-        if self.log % 20 == 0:
+        pass
+        # canvas = state[:, :3]
+        # gt = state[:, 3 : 6]
+        # fake, real, penal = update(canvas.float() / 255, gt.float() / 255)
+        # if self.log % 20 == 0:
             # self.writer.add_scalar('train/gan_fake', fake, self.log)
             # self.writer.add_scalar('train/gan_real', real, self.log)
             # self.writer.add_scalar('train/gan_penal', penal, self.log)       
-            wandb.log({"train/gan_fake": fake, "train/gan_real": real, "train/gan_penal": penal}, step=self.log)
+            # wandb.log({"train/gan_fake": fake, "train/gan_real": real, "train/gan_penal": penal})
         
     def evaluate(self, state, action, target=False):
         T = state[:, 6 : 7]
         gt = state[:, 3 : 6].float() / 255
         canvas0 = state[:, :3].float() / 255
         canvas1 = decode(action, canvas0)
-        gan_reward = cal_reward(canvas1, gt) - cal_reward(canvas0, gt)
-        # L2_reward = ((canvas0 - gt) ** 2).mean(1).mean(1).mean(1) - ((canvas1 - gt) ** 2).mean(1).mean(1).mean(1)        
+        # gan_reward = cal_reward(canvas1, gt) - cal_reward(canvas0, gt)
+        l2_reward = ((canvas0 - gt) ** 2).mean(1).mean(1).mean(1) - ((canvas1 - gt) ** 2).mean(1).mean(1).mean(1)        
         coord_ = coord.expand(state.shape[0], 2, 128, 128)
         merged_state = torch.cat([canvas0, canvas1, gt, (T + 1).float() / self.max_step, coord_], 1)
         # canvas0 is not necessarily added
         if target:
             Q = self.critic_target(merged_state)
-            return (Q + gan_reward), gan_reward
+            return (Q + l2_reward), l2_reward
         else:
             Q = self.critic(merged_state)
             if self.log % 20 == 0:
                 # self.writer.add_scalar('train/expect_reward', Q.mean(), self.log)
                 # self.writer.add_scalar('train/gan_reward', gan_reward.mean(), self.log)
-                wandb.log({"train/expect_reward": Q.mean(), "train/gan_reward": gan_reward.mean()}, step=self.log)
-            return (Q + gan_reward), gan_reward
+                wandb.log({"train/expect_reward": Q.mean(), "train/l2_reward": l2_reward.mean()})
+            return (Q + l2_reward), l2_reward
     
     def update_policy(self, lr):
         self.log += 1
@@ -128,7 +128,7 @@ class DDPG(object):
         state, action, reward, \
             next_state, terminal = self.memory.sample_batch(self.batch_size, device)
 
-        self.update_gan(next_state)
+        # self.update_gan(next_state)
         
         with torch.no_grad():
             next_action = self.play(next_state, True)
@@ -193,14 +193,14 @@ class DDPG(object):
         if path is None: return
         self.actor.load_state_dict(torch.load('{}/actor.pkl'.format(path)))
         self.critic.load_state_dict(torch.load('{}/critic.pkl'.format(path)))
-        load_gan(path)
+        # load_gan(path)
         
     def save_model(self, path):
         self.actor.cpu()
         self.critic.cpu()
         torch.save(self.actor.state_dict(),'{}/actor.pkl'.format(path))
         torch.save(self.critic.state_dict(),'{}/critic.pkl'.format(path))
-        save_gan(path)
+        # save_gan(path)
         self.choose_device()
 
     def eval(self):

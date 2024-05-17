@@ -26,7 +26,7 @@ class Evaluator(object):
                 observation, reward, done, (step_num) = env.step(action)
                 episode_reward += reward
                 episode_steps += 1
-                env.save_image(self.log, episode_steps)
+            env.save_image(self.log, episode_steps)
             dist = env.get_dist()
             self.log += 1
         return episode_reward, dist

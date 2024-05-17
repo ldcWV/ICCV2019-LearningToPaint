@@ -73,8 +73,8 @@ def cal_gradient_penalty(netD, real_data, fake_data, batch_size):
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * LAMBDA
     return gradient_penalty
 
-def cal_reward(fake_data, real_data):
-    return target_netD(torch.cat([real_data, fake_data], 1))
+# def cal_reward(fake_data, real_data):
+#     return target_netD(torch.cat([real_data, fake_data], 1))
 
 def save_gan(path):
     netD.cpu()

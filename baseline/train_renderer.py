@@ -69,20 +69,22 @@ while step < 500000:
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
     # writer.add_scalar("train/loss", loss.item(), step)
-    wandb.log({"train/loss": loss.item()}, step=step)
+    wandb.log({"train/loss": loss.item()})
     if step % 100 == 0:
         net.eval()
         gen = net(train_batch)
         loss = criterion(gen, ground_truth)
         # writer.add_scalar("val/loss", loss.item(), step)
-        wandb.log({"val/loss": loss.item()}, step=step)
+        wandb.log({"val/loss": loss.item()})
         for i in range(32):
             G = gen[i].cpu().data.numpy()
             GT = ground_truth[i].cpu().data.numpy()
             # writer.add_image("train/gen{}.png".format(i), G, step)
             # writer.add_image("train/ground_truth{}.png".format(i), GT, step)
-            wandb.log({"train/gen{}.png".format(i): wandb.Image(G)}, step=step)
-            wandb.log({"train/ground_truth{}.png".format(i): wandb.Image(GT)}, step=step)
+            wandb.log({
+                "train/gen{}.png".format(i): wandb.Image(G),
+                "train/ground_truth{}.png".format(i): wandb.Image(GT)
+            })
     if step % 1000 == 0:
         save_model()
     step += 1
