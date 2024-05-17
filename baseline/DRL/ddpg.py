@@ -9,6 +9,7 @@ from DRL.actor import *
 from DRL.critic import *
 from DRL.wgan import *
 from utils.util import *
+import wandb
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 coord = torch.zeros([1, 2, 128, 128])
@@ -42,7 +43,7 @@ def cal_trans(s, t):
 class DDPG(object):
     def __init__(self, batch_size=64, env_batch=1, max_step=40, \
                  tau=0.001, discount=0.9, rmsize=800, \
-                 writer=None, resume=None, output_path=None):
+                 resume=None, output_path=None):
 
         self.max_step = max_step
         self.env_batch = env_batch
@@ -70,7 +71,7 @@ class DDPG(object):
         self.discount = discount
 
         # Tensorboard
-        self.writer = writer
+        # self.writer = writer
         self.log = 0
         
         self.state = [None] * self.env_batch # Most recent state
@@ -89,9 +90,10 @@ class DDPG(object):
         gt = state[:, 3 : 6]
         fake, real, penal = update(canvas.float() / 255, gt.float() / 255)
         if self.log % 20 == 0:
-            self.writer.add_scalar('train/gan_fake', fake, self.log)
-            self.writer.add_scalar('train/gan_real', real, self.log)
-            self.writer.add_scalar('train/gan_penal', penal, self.log)       
+            # self.writer.add_scalar('train/gan_fake', fake, self.log)
+            # self.writer.add_scalar('train/gan_real', real, self.log)
+            # self.writer.add_scalar('train/gan_penal', penal, self.log)       
+            wandb.log({"train/gan_fake": fake, "train/gan_real": real, "train/gan_penal": penal}, step=self.log)
         
     def evaluate(self, state, action, target=False):
         T = state[:, 6 : 7]
@@ -109,8 +111,9 @@ class DDPG(object):
         else:
             Q = self.critic(merged_state)
             if self.log % 20 == 0:
-                self.writer.add_scalar('train/expect_reward', Q.mean(), self.log)
-                self.writer.add_scalar('train/gan_reward', gan_reward.mean(), self.log)
+                # self.writer.add_scalar('train/expect_reward', Q.mean(), self.log)
+                # self.writer.add_scalar('train/gan_reward', gan_reward.mean(), self.log)
+                wandb.log({"train/expect_reward": Q.mean(), "train/gan_reward": gan_reward.mean()}, step=self.log)
             return (Q + gan_reward), gan_reward
     
     def update_policy(self, lr):

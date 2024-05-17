@@ -5,11 +5,13 @@ import numpy as np
 import argparse
 from DRL.evaluator import Evaluator
 from utils.util import *
-from utils.tensorboard import TensorBoard
+import wandb
+# from utils.tensorboard import TensorBoard
 import time
 
 exp = os.path.abspath('.').split('/')[-1]
-writer = TensorBoard('../train_log/{}'.format(exp))
+wandb.init()
+# writer = TensorBoard('../train_log/{}'.format(exp))
 os.system('ln -sf ../train_log/{} ./log'.format(exp))
 os.system('mkdir ./model')
 
@@ -43,9 +45,10 @@ def train(agent, env, evaluate):
                 if episode > 0 and validate_interval > 0 and episode % validate_interval == 0:
                     reward, dist = evaluate(env, agent.select_action, debug=debug)
                     if debug: prRed('Step_{:07d}: mean_reward:{:.3f} mean_dist:{:.3f} var_dist:{:.3f}'.format(step - 1, np.mean(reward), np.mean(dist), np.var(dist)))
-                    writer.add_scalar('validate/mean_reward', np.mean(reward), step)
-                    writer.add_scalar('validate/mean_dist', np.mean(dist), step)
-                    writer.add_scalar('validate/var_dist', np.var(dist), step)
+                    # writer.add_scalar('validate/mean_reward', np.mean(reward), step)
+                    # writer.add_scalar('validate/mean_dist', np.mean(dist), step)
+                    # writer.add_scalar('validate/var_dist', np.var(dist), step)
+                    wandb.log({'validate/mean_reward': np.mean(reward), 'validate/mean_dist': np.mean(dist), 'validate/var_dist': np.var(dist)}, step=step)
                     agent.save_model(output)
             train_time_interval = time.time() - time_stamp
             time_stamp = time.time()
@@ -62,10 +65,12 @@ def train(agent, env, evaluate):
                     Q, value_loss = agent.update_policy(lr)
                     tot_Q += Q.data.cpu().numpy()
                     tot_value_loss += value_loss.data.cpu().numpy()
-                writer.add_scalar('train/critic_lr', lr[0], step)
-                writer.add_scalar('train/actor_lr', lr[1], step)
-                writer.add_scalar('train/Q', tot_Q / episode_train_times, step)
-                writer.add_scalar('train/critic_loss', tot_value_loss / episode_train_times, step)
+                # writer.add_scalar('train/critic_lr', lr[0], step)
+                # writer.add_scalar('train/actor_lr', lr[1], step)
+                # writer.add_scalar('train/Q', tot_Q / episode_train_times, step)
+                # writer.add_scalar('train/critic_loss', tot_value_loss / episode_train_times, step)
+                print("Step_{:07d}: critic_lr:{:.3e} actor_lr:{:.3e} Q:{:.3f} critic_loss:{:.3f}".format(step, lr[0], lr[1], tot_Q / episode_train_times, tot_value_loss / episode_train_times))
+                wandb.log({'train/critic_lr': lr[0], 'train/actor_lr': lr[1], 'train/Q': tot_Q / episode_train_times, 'train/critic_loss': tot_value_loss / episode_train_times}, step=step)
             if debug: prBlack('#{}: steps:{} interval_time:{:.2f} train_time:{:.2f}' \
                 .format(episode, step, train_time_interval, time.time()-time_stamp)) 
             time_stamp = time.time()
@@ -105,10 +110,10 @@ if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True
     from DRL.ddpg import DDPG
     from DRL.multi import fastenv
-    fenv = fastenv(args.max_step, args.env_batch, writer)
+    fenv = fastenv(args.max_step, args.env_batch)
     agent = DDPG(args.batch_size, args.env_batch, args.max_step, \
                  args.tau, args.discount, args.rmsize, \
-                 writer, args.resume, args.output)
-    evaluate = Evaluator(args, writer)
+                 args.resume, args.output)
+    evaluate = Evaluator(args)
     print('observation_space', fenv.observation_space, 'action_space', fenv.action_space)
     train(agent, fenv, evaluate)

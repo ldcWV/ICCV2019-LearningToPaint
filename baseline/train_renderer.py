@@ -4,11 +4,13 @@ import numpy as np
 
 import torch.nn as nn
 import torch.nn.functional as F
-from utils.tensorboard import TensorBoard
+# from utils.tensorboard import TensorBoard
+import wandb
 from Renderer.model import FCN
 from Renderer.stroke_gen import *
 
-writer = TensorBoard("../train_log/")
+# writer = TensorBoard("../train_log/")
+wandb.init()
 import torch.optim as optim
 
 criterion = nn.MSELoss()
@@ -36,7 +38,7 @@ def load_weights():
     net.load_state_dict(model_dict)
 
 
-load_weights()
+# load_weights()
 while step < 500000:
     net.train()
     train_batch = []
@@ -66,17 +68,21 @@ while step < 500000:
         lr = 1e-6
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
-    writer.add_scalar("train/loss", loss.item(), step)
+    # writer.add_scalar("train/loss", loss.item(), step)
+    wandb.log({"train/loss": loss.item()}, step=step)
     if step % 100 == 0:
         net.eval()
         gen = net(train_batch)
         loss = criterion(gen, ground_truth)
-        writer.add_scalar("val/loss", loss.item(), step)
+        # writer.add_scalar("val/loss", loss.item(), step)
+        wandb.log({"val/loss": loss.item()}, step=step)
         for i in range(32):
             G = gen[i].cpu().data.numpy()
             GT = ground_truth[i].cpu().data.numpy()
-            writer.add_image("train/gen{}.png".format(i), G, step)
-            writer.add_image("train/ground_truth{}.png".format(i), GT, step)
+            # writer.add_image("train/gen{}.png".format(i), G, step)
+            # writer.add_image("train/ground_truth{}.png".format(i), GT, step)
+            wandb.log({"train/gen{}.png".format(i): wandb.Image(G)}, step=step)
+            wandb.log({"train/ground_truth{}.png".format(i): wandb.Image(GT)}, step=step)
     if step % 1000 == 0:
         save_model()
     step += 1
