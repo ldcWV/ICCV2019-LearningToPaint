@@ -20,20 +20,20 @@ coord = coord.to(device)
 
 criterion = nn.MSELoss()
 
-Decoder = FCN()
-Decoder.load_state_dict(torch.load('../renderer.pkl'))
+from Renderer.diff_path_renderer import render
+# Decoder = FCN()
+# Decoder.load_state_dict(torch.load('../renderer.pkl'))
 
 def decode(x, canvas): # b * (10 + 3)
-    x = x.view(-1, 10 + 3)
-    stroke = 1 - Decoder(x[:, :10])
+    x = x.view(-1, 6)
+    stroke = 1 - render(x)
+    # x = x.view(-1, 13)
+    # stroke = 1 - Decoder(x[:, :10])
     stroke = stroke.view(-1, 128, 128, 1)
-    color_stroke = stroke * x[:, -3:].view(-1, 1, 1, 3)
     stroke = stroke.permute(0, 3, 1, 2)
-    color_stroke = color_stroke.permute(0, 3, 1, 2)
     stroke = stroke.view(-1, 5, 1, 128, 128)
-    color_stroke = color_stroke.view(-1, 5, 3, 128, 128)
     for i in range(5):
-        canvas = canvas * (1 - stroke[:, i]) + color_stroke[:, i]
+        canvas = torch.max(canvas, (1 - stroke[:, i]))
     return canvas
 
 def cal_trans(s, t):
@@ -48,8 +48,8 @@ class DDPG(object):
         self.env_batch = env_batch
         self.batch_size = batch_size        
 
-        self.actor = ResNet(9, 18, 65) # target, canvas, stepnum, coordconv 3 + 3 + 1 + 2
-        self.actor_target = ResNet(9, 18, 65)
+        self.actor = ResNet(9, 18, 30) # target, canvas, stepnum, coordconv 3 + 3 + 1 + 2
+        self.actor_target = ResNet(9, 18, 30)
         self.critic = ResNet_wobn(3 + 9, 18, 1) # add the last canvas for better prediction
         self.critic_target = ResNet_wobn(3 + 9, 18, 1) 
 
@@ -216,7 +216,7 @@ class DDPG(object):
         self.critic_target.train()
     
     def choose_device(self):
-        Decoder.to(device)
+        # Decoder.to(device)
         self.actor.to(device)
         self.actor_target.to(device)
         self.critic.to(device)
