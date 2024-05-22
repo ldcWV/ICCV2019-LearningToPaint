@@ -21,13 +21,13 @@ class fastenv():
         self.log = 0
 
     def save_image(self, log, step):
-        # for i in range(1):
+        # for i in range(5):
         #     if self.env.imgid[i] <= 10:
         #         canvas = cv2.cvtColor((to_numpy(self.env.canvas[i].permute(1, 2, 0))), cv2.COLOR_BGR2RGB)
         #         self.writer.add_image('{}/canvas_{}.png'.format(str(self.env.imgid[i]), str(step)), canvas, log)
         #         wandb.log({'{}/canvas_{}.png'.format(str(self.env.imgid[i]), str(step)): [wandb.Image(canvas)]})
         if step == self.max_episode_length:
-            for i in range(1):
+            for i in range(10):
                 if self.env.imgid[i] < 50:
                     gt = cv2.cvtColor((to_numpy(self.env.gt[i].permute(1, 2, 0))), cv2.COLOR_BGR2RGB)
                     canvas = cv2.cvtColor((to_numpy(self.env.canvas[i].permute(1, 2, 0))), cv2.COLOR_BGR2RGB)

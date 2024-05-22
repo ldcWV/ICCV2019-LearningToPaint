@@ -21,20 +21,30 @@ coord = coord.to(device)
 criterion = nn.MSELoss()
 
 from Renderer.diff_path_renderer import render
-# Decoder = FCN()
-# Decoder.load_state_dict(torch.load('../renderer.pkl'))
+Decoder = FCN()
+Decoder.load_state_dict(torch.load('../renderer.pkl'))
 
 def decode(x, canvas): # b * (10 + 3)
     x = x.view(-1, 6)
-    stroke = 1 - render(x)
-    # x = x.view(-1, 13)
-    # stroke = 1 - Decoder(x[:, :10])
-    stroke = stroke.view(-1, 128, 128, 1)
-    stroke = stroke.permute(0, 3, 1, 2)
-    stroke = stroke.view(-1, 5, 1, 128, 128)
-    for i in range(5):
-        canvas = torch.max(canvas, (1 - stroke[:, i]))
+    stroke = render(x)
+    stroke = stroke.view(-1, 128, 128, 1) # B*5 x 128 x 128 x 1
+    stroke = stroke.permute(0, 3, 1, 2) # B*5 x 1 x 128 x 128
+    stroke = stroke.view(-1, 5, 1, 128, 128) # B x 5 x 1 x 128 x 128
+    stroke = torch.max(stroke, dim=1).values # B x 1 x 128 x 128
+    canvas = torch.min(canvas, (1 - stroke))
     return canvas
+
+    # x = x.view(-1, 10 + 3)
+    # stroke = 1 - Decoder(x[:, :10])
+    # stroke = stroke.view(-1, 128, 128, 1)
+    # color_stroke = stroke * x[:, -3:].view(-1, 1, 1, 3)
+    # stroke = stroke.permute(0, 3, 1, 2)
+    # color_stroke = color_stroke.permute(0, 3, 1, 2)
+    # stroke = stroke.view(-1, 5, 1, 128, 128)
+    # color_stroke = color_stroke.view(-1, 5, 3, 128, 128)
+    # for i in range(5):
+    #     canvas = canvas * (1 - stroke[:, i]) + color_stroke[:, i]
+    # return canvas
 
 def cal_trans(s, t):
     return (s.transpose(0, 3) * t).transpose(0, 3)
@@ -50,6 +60,8 @@ class DDPG(object):
 
         self.actor = ResNet(9, 18, 30) # target, canvas, stepnum, coordconv 3 + 3 + 1 + 2
         self.actor_target = ResNet(9, 18, 30)
+        # self.actor = ResNet(9, 18, 65) # target, canvas, stepnum, coordconv 3 + 3 + 1 + 2
+        # self.actor_target = ResNet(9, 18, 65)
         self.critic = ResNet_wobn(3 + 9, 18, 1) # add the last canvas for better prediction
         self.critic_target = ResNet_wobn(3 + 9, 18, 1) 
 
@@ -101,7 +113,15 @@ class DDPG(object):
         canvas0 = state[:, :3].float() / 255
         canvas1 = decode(action, canvas0)
         # gan_reward = cal_reward(canvas1, gt) - cal_reward(canvas0, gt)
-        l2_reward = ((canvas0 - gt) ** 2).mean(1).mean(1).mean(1) - ((canvas1 - gt) ** 2).mean(1).mean(1).mean(1)        
+        def weighted_loss(canvas, gt):
+            black_mask = (gt.mean(1) <= 0.2).float() # B x width x width
+            white_mask = 1 - black_mask # B x width x width
+            l2 = ((canvas - gt) ** 2).mean(1) # B x width x width
+            black_loss = (l2 * black_mask).mean(1).mean(1)
+            white_loss = (l2 * white_mask).mean(1).mean(1)
+            return 0.9 * black_loss + 0.1 * white_loss
+
+        l2_reward = weighted_loss(canvas0, gt) - weighted_loss(canvas1, gt)
         coord_ = coord.expand(state.shape[0], 2, 128, 128)
         merged_state = torch.cat([canvas0, canvas1, gt, (T + 1).float() / self.max_step, coord_], 1)
         # canvas0 is not necessarily added
@@ -216,7 +236,7 @@ class DDPG(object):
         self.critic_target.train()
     
     def choose_device(self):
-        # Decoder.to(device)
+        Decoder.to(device)
         self.actor.to(device)
         self.actor_target.to(device)
         self.critic.to(device)

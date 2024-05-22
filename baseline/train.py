@@ -9,6 +9,14 @@ import wandb
 # from utils.tensorboard import TensorBoard
 import time
 
+import torch
+sd = 0
+torch.manual_seed(sd)
+random.seed(sd)
+np.random.seed(sd)
+# torch.backends.cudnn.benchmark = False
+# torch.use_deterministic_algorithms(True)
+
 exp = os.path.abspath('.').split('/')[-1]
 wandb.init()
 # writer = TensorBoard('../train_log/{}'.format(exp))
@@ -89,10 +97,10 @@ if __name__ == "__main__":
     parser.add_argument('--rmsize', default=800, type=int, help='replay memory size')
     parser.add_argument('--env_batch', default=96, type=int, help='concurrent environment number')
     parser.add_argument('--tau', default=0.001, type=float, help='moving average for target network')
-    parser.add_argument('--max_step', default=40, type=int, help='max length for episode')
+    parser.add_argument('--max_step', default=10, type=int, help='max length for episode')
     parser.add_argument('--noise_factor', default=0, type=float, help='noise level for parameter space noise')
-    parser.add_argument('--validate_interval', default=1, type=int, help='how many episodes to perform a validation')
-    parser.add_argument('--validate_episodes', default=1, type=int, help='how many episode to perform during validation')
+    parser.add_argument('--validate_interval', default=50, type=int, help='how many episodes to perform a validation')
+    parser.add_argument('--validate_episodes', default=10, type=int, help='how many episode to perform during validation')
     parser.add_argument('--train_times', default=2000000, type=int, help='total traintimes')
     parser.add_argument('--episode_train_times', default=10, type=int, help='train times for each episode')    
     parser.add_argument('--resume', default=None, type=str, help='Resuming model path for testing')
@@ -116,4 +124,5 @@ if __name__ == "__main__":
                  args.resume, args.output)
     evaluate = Evaluator(args)
     print('observation_space', fenv.observation_space, 'action_space', fenv.action_space)
-    train(agent, fenv, evaluate)
+    with torch.autograd.detect_anomaly(True):
+        train(agent, fenv, evaluate)
